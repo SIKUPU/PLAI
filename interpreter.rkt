@@ -58,7 +58,10 @@
 ; ArithC -> Number
 ; evaluates the given arithmetic expr a.
 (define (interp [a : ArithC]) : number
-  0)
+  (type-case ArithC a
+    [numC(n) n]
+    [plusC(l r) (+ (interp l) (interp r))]
+    [multC(l r) (* (interp l) (interp r))]))
 
 
 (test (interp (numC 2)) 2)
@@ -67,7 +70,7 @@
 
 (test (interp (plusC (plusC (numC 2) (numC 3))
                      (multC (numC 5) (numC 6))))
-      33)
+      35)
 
 (test (interp (multC (plusC (numC 2) (numC 3))
                      (multC (numC 5) (numC 6))))
