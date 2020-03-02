@@ -5,6 +5,15 @@
 ;  Data definition
 ; -----------------------------
 
+;   Surface Language
+(define-type ArithS
+  [numS (n : number)]
+  [plusS (l : ArithS) (r : ArithS)]
+  [bminusS (l : ArithS) (r : ArithS)]
+  [multS (l : ArithS) (r : ArithS)])
+
+
+;   Core Language
 (define-type ArithC
   [numC (n : number)]
   [plusC (l : ArithC) (r : ArithC)]
@@ -18,36 +27,38 @@
 
 ;  Key Typing      "(+ 23 (+ 5 6))"     
 ;       |
-;     read
+;     (read)
 ;       |
 ;  S-expression    (+ 23 (+ 5 6))
 ;       |
-;     parse
+;   (parse ...)
 ;       |
-;     ArithC       (plusC (numC 23)
-;                         (plusC (numC 5)
-;                                (numC 6)))
+;     ArithS       (plusS (numS 23)
+;                         (plusS (numS 5)
+;                                (numS 6)))
 
-; S-expr -> ArithC
+; S-expr -> ArithS
 ; translates S-expression s to representation of Data
-(define (parse [s : s-expression]) : ArithC
+(define (parse [s : s-expression]) : ArithS
   (cond
-    [(s-exp-number? s) (numC (s-exp->number s))]
+    [(s-exp-number? s) (numS (s-exp->number s))]
     [(s-exp-list? s)
      (let ([sl (s-exp->list s)])
        (case (s-exp->symbol (first sl))
-         [(+) (plusC (parse (second sl)) (parse (third sl)))]
-         [(*) (multC (parse (second sl)) (parse (third sl)))]
+         [(+) (plusS (parse (second sl)) (parse (third sl)))]
+         [(-) (bminusS (parse (second sl)) (parse (third sl)))]
+         [(*) (multS (parse (second sl)) (parse (third sl)))]
          [else (error 'parse "invalid list input")]))]
     [else (error 'parse "invalid input")]))
 
 
-(test (parse '2) (numC 2))
-(test (parse '(+ 2 3)) (plusC (numC 2) (numC 3)))
+(test (parse '2) (numS 2))
+(test (parse '(+ 2 3)) (plusS (numS 2) (numS 3)))
+(test (parse '(- 2 3)) (bminusS (numS 2) (numS 3)))
 (test (parse '(+ 23 (+ 5 6)))
-      (plusC (numC 23)
-             (plusC (numC 5)
-                    (numC 6))))
+      (plusS (numS 23)
+             (plusS (numS 5)
+                    (numS 6))))
 
 
 
