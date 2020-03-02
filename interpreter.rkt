@@ -48,3 +48,27 @@
       (plusC (numC 23)
              (plusC (numC 5)
                     (numC 6))))
+
+
+
+; -----------------------------
+;  Interpreter
+; -----------------------------
+
+; ArithC -> Number
+; evaluates the given arithmetic expr a.
+(define (interp [a : ArithC]) : number
+  0)
+
+
+(test (interp (numC 2)) 2)
+(test (interp (plusC (numC 2) (numC 3))) 5)
+(test (interp (multC (numC 5) (numC 6))) 30)
+
+(test (interp (plusC (plusC (numC 2) (numC 3))
+                     (multC (numC 5) (numC 6))))
+      33)
+
+(test (interp (multC (plusC (numC 2) (numC 3))
+                     (multC (numC 5) (numC 6))))
+      150)
