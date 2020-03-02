@@ -16,17 +16,17 @@
 ;  Parser
 ; -----------------------------
 
-; "(+ 23 (+ 5 6))"     Key Type
+;  Key Typing      "(+ 23 (+ 5 6))"     
 ;       |
 ;     read
 ;       |
-; '(+ 23 (+ 5 6))      S-expression
+;  S-expression    (+ 23 (+ 5 6))
 ;       |
 ;     parse
 ;       |
-; (plusC (numC 23)
-;        (plusC (numC 5)    ArithC
-;               (numC 6)))
+;     ArithC       (plusC (numC 23)
+;                         (plusC (numC 5)
+;                                (numC 6)))
 
 ; S-expr -> ArithC
 ; translates S-expression s to representation of Data
