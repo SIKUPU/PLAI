@@ -63,6 +63,42 @@
 
 
 ; -----------------------------
+;  Desugar
+; -----------------------------
+
+;    ArithS
+;      |
+; (desugar ...)
+;      |
+;    ArithC
+
+; ArithS -> ArithC
+; translates the given surface language 'as' to core language
+(define (desugar [as : ArithS]) : ArithC
+  (type-case ArithS as
+    [numS(n) (numC n)]
+    [plusS(l r) (plusC (desugar l)
+                        (desugar r))]
+    [multS(l r) (multC (desugar l)
+                        (desugar r))]
+    [bminusS(l r) (plusC (desugar l)       ; l-r defined l+(-1)*r
+                         (multC (numC -1)
+                                (desugar r)))]))
+
+(test (desugar (numS 2)) (numC 2))
+
+(test (desugar (plusS (numS 2) (numS 3)))
+      (plusC (numC 2) (numC 3)))
+
+(test (desugar (multS (numS 5) (numS 6)))
+      (multC (numC 5) (numC 6)))
+
+(test (desugar (bminusS (numS 9) (numS 8)))
+      (plusC (numC 9) (multC (numC -1) (numC 8))))
+
+
+
+; -----------------------------
 ;  Interpreter
 ; -----------------------------
 
