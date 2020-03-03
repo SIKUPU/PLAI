@@ -82,8 +82,8 @@
                         (desugar r))]
     [multS(l r) (multC (desugar l)
                         (desugar r))]
-    [uminusS(e) (multC (numC -1) (desugar e))]
-    [bminusS(l r) (plusC (desugar l)       ; l-r defined l+(-1)*r
+    [uminusS(e) (multC (numC -1) (desugar e))]  ; -e defined -1*e
+    [bminusS(l r) (plusC (desugar l)            ; l-r defined l+(-1)*r
                          (multC (numC -1)
                                 (desugar r)))]))
 
