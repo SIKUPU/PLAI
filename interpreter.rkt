@@ -6,13 +6,22 @@
 ; -----------------------------
 
 ;   Surface Language
+
+; num
+; (+ expr expr)
+; (- expr expr)
+; (- expr)
+; (- expr expr)
+; (* expr expr)
+; (if expr expr expr)
+
 (define-type ArithS
   [numS (n : number)]
   [plusS (l : ArithS) (r : ArithS)]
   [uminusS (e : ArithS)]
   [bminusS (l : ArithS) (r : ArithS)]
   [multS (l : ArithS) (r : ArithS)]
-  [ifS (cnd : ArithS) (cnsqnt : ArithS) (alt : ArithS)])     ; if condition consequent alternative
+  [ifS (cnd : ArithS) (cnsqnt : ArithS) (alt : ArithS)])
 
 
 ;   Core Language
@@ -130,7 +139,7 @@
     [numC(n) n]
     [plusC(l r) (+ (interp l) (interp r))]
     [multC(l r) (* (interp l) (interp r))]
-    [ifC(cnd cseq alt) (if (= 0 (interp cnd))
+    [ifC(cnd cseq alt) (if (zero? (interp cnd))
                            (interp cseq)
                            (interp alt))]))
 
