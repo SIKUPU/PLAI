@@ -96,7 +96,9 @@
     [bminusS(l r) (plusC (desugar l)            ; l-r defined l+(-1)*r
                          (multC (numC -1)
                                 (desugar r)))]
-    [ifS(cnd cseq alt) (numC 0)]))              ; dummy
+    [ifS(cnd cseq alt) (ifC (desugar cnd)
+                            (desugar cseq)
+                            (desugar alt))]))
 
 (test (desugar (numS 2)) (numC 2))
 
@@ -128,7 +130,9 @@
     [numC(n) n]
     [plusC(l r) (+ (interp l) (interp r))]
     [multC(l r) (* (interp l) (interp r))]
-    [ifC(cnd cseq alt) 0]))  ; dummy
+    [ifC(cnd cseq alt) (if (= 0 (interp cnd))
+                           (interp cseq)
+                           (interp alt))]))
 
 
 (test (interp (numC 2)) 2)
