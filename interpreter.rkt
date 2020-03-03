@@ -32,6 +32,10 @@
   [ifC (cnd : ArithC) (cnsqnt : ArithC) (alt : ArithC)])
 
 
+;  Function definition
+(define-type FunDefC
+  [fdC (name : symbol) (arg : symbol) (body : ArithC)])
+
 
 ; -----------------------------
 ;  Parser
