@@ -9,6 +9,7 @@
 (define-type ArithS
   [numS (n : number)]
   [plusS (l : ArithS) (r : ArithS)]
+  [uminusS (e : ArithS)]
   [bminusS (l : ArithS) (r : ArithS)]
   [multS (l : ArithS) (r : ArithS)])
 
@@ -81,6 +82,7 @@
                         (desugar r))]
     [multS(l r) (multC (desugar l)
                         (desugar r))]
+    [uminusS(e) (multC (numC -1) (desugar e))]
     [bminusS(l r) (plusC (desugar l)       ; l-r defined l+(-1)*r
                          (multC (numC -1)
                                 (desugar r)))]))
@@ -95,6 +97,12 @@
 
 (test (desugar (bminusS (numS 9) (numS 8)))
       (plusC (numC 9) (multC (numC -1) (numC 8))))
+
+(test (desugar (uminusS (numS 5)))
+      (multC (numC -1) (numC 5)))
+
+(test (desugar (uminusS (plusS (numS 5) (numS 6))))
+      (multC (numC -1) (plusC (numC 5) (numC 6))))
 
 
 
