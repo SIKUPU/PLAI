@@ -25,16 +25,18 @@
 
 
 ;   Core Language
-(define-type ArithC
+(define-type ExprC
   [numC (n : number)]
-  [plusC (l : ArithC) (r : ArithC)]
-  [multC (l : ArithC) (r : ArithC)]
-  [ifC (cnd : ArithC) (cnsqnt : ArithC) (alt : ArithC)])
+  ; idC
+  ; apply
+  [plusC (l : ExprC) (r : ExprC)]
+  [multC (l : ExprC) (r : ExprC)]
+  [ifC (cnd : ExprC) (cnsqnt : ExprC) (alt : ExprC)])
 
 
 ;  Function definition
 (define-type FunDefC
-  [fdC (name : symbol) (arg : symbol) (body : ArithC)])
+  [fdC (name : symbol) (arg : symbol) (body : ExprC)])
 
 
 ; -----------------------------
@@ -98,7 +100,7 @@
 
 ; ArithS -> ArithC
 ; translates the given surface language 'as' to core language
-(define (desugar [as : ArithS]) : ArithC
+(define (desugar [as : ArithS]) : ExprC
   (type-case ArithS as
     [numS(n) (numC n)]
     [plusS(l r) (plusC (desugar l)
@@ -138,8 +140,8 @@
 
 ; ArithC -> Number
 ; evaluates the given arithmetic expr a.
-(define (interp [a : ArithC]) : number
-  (type-case ArithC a
+(define (interp [a : ExprC]) : number
+  (type-case ExprC a
     [numC(n) n]
     [plusC(l r) (+ (interp l) (interp r))]
     [multC(l r) (* (interp l) (interp r))]
