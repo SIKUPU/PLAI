@@ -11,14 +11,16 @@
   [plusS (l : ArithS) (r : ArithS)]
   [uminusS (e : ArithS)]
   [bminusS (l : ArithS) (r : ArithS)]
-  [multS (l : ArithS) (r : ArithS)])
+  [multS (l : ArithS) (r : ArithS)]
+  [ifS (cnd : ArithS) (cnsqnt : ArithS) (alt : ArithS)])     ; if condition consequent alternative
 
 
 ;   Core Language
 (define-type ArithC
   [numC (n : number)]
   [plusC (l : ArithC) (r : ArithC)]
-  [multC (l : ArithC) (r : ArithC)])
+  [multC (l : ArithC) (r : ArithC)]
+  [ifC (cnd : ArithC) (cnsqnt : ArithC) (alt : ArithC)])
 
 
 
@@ -49,17 +51,25 @@
          [(+) (plusS (parse (second sl)) (parse (third sl)))]
          [(-) (bminusS (parse (second sl)) (parse (third sl)))]
          [(*) (multS (parse (second sl)) (parse (third sl)))]
+         [(if) (ifS (parse (second sl)) (parse (third sl)) (parse (fourth sl)))]
          [else (error 'parse "invalid list input")]))]
     [else (error 'parse "invalid input")]))
 
 
 (test (parse '2) (numS 2))
+
 (test (parse '(+ 2 3)) (plusS (numS 2) (numS 3)))
+
 (test (parse '(- 2 3)) (bminusS (numS 2) (numS 3)))
+
 (test (parse '(+ 23 (+ 5 6)))
       (plusS (numS 23)
              (plusS (numS 5)
                     (numS 6))))
+
+(test (parse '(if 2 (+ 1 2) 5))
+      (ifS (numS 2) (plusS (numS 1) (numS 2)) (numS 5)))
+
 
 
 
@@ -85,7 +95,8 @@
     [uminusS(e) (multC (numC -1) (desugar e))]  ; -e defined -1*e
     [bminusS(l r) (plusC (desugar l)            ; l-r defined l+(-1)*r
                          (multC (numC -1)
-                                (desugar r)))]))
+                                (desugar r)))]
+    [ifS(cnd cseq alt) (numC 0)]))              ; dummy
 
 (test (desugar (numS 2)) (numC 2))
 
@@ -116,7 +127,8 @@
   (type-case ArithC a
     [numC(n) n]
     [plusC(l r) (+ (interp l) (interp r))]
-    [multC(l r) (* (interp l) (interp r))]))
+    [multC(l r) (* (interp l) (interp r))]
+    [ifC(cnd cseq alt) 0]))  ; dummy
 
 
 (test (interp (numC 2)) 2)
