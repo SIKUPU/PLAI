@@ -39,6 +39,14 @@
   [fdC (name : symbol) (arg : symbol) (body : ExprC)])
 
 
+;  Examples
+
+(define double    (fdC 'double 'x (plusC (idC 'x) (idC 'x))))
+(define quadruple (fdC 'quadruple 'x (appC 'double (appC 'double (idC 'x)))))
+(define const5    (fdC 'const5 '_ (numC 5)))
+
+
+
 ; -----------------------------
 ;  Parser
 ; -----------------------------
