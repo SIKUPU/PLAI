@@ -27,8 +27,8 @@
 ;   Core Language
 (define-type ExprC
   [numC (n : number)]
-  ; idC
-  ; apply
+  [idC (s : symbol)]
+  [appC (fun : symbol) (arg : ExprC)]
   [plusC (l : ExprC) (r : ExprC)]
   [multC (l : ExprC) (r : ExprC)]
   [ifC (cnd : ExprC) (cnsqnt : ExprC) (alt : ExprC)])
@@ -142,12 +142,15 @@
 ; evaluates the given arithmetic expr a.
 (define (interp [a : ExprC]) : number
   (type-case ExprC a
-    [numC(n) n]
-    [plusC(l r) (+ (interp l) (interp r))]
-    [multC(l r) (* (interp l) (interp r))]
-    [ifC(cnd cseq alt) (if (zero? (interp cnd))
+    [numC (n) n]
+    [plusC (l r) (+ (interp l) (interp r))]
+    [multC (l r) (* (interp l) (interp r))]
+    [ifC (cnd cseq alt) (if (zero? (interp cnd))
                            (interp cseq)
-                           (interp alt))]))
+                           (interp alt))]
+    [idC (s) 0]
+    [appC (fun arg)
+          0]))
 
 
 (test (interp (numC 2)) 2)
