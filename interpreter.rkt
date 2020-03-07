@@ -45,6 +45,7 @@
 (define quadruple (fdC 'quadruple 'x (appC 'double (appC 'double (idC 'x)))))
 (define const5    (fdC 'const5 '_ (numC 5)))
 
+(define fun-defs (list double quadruple const5))
 
 
 ; -----------------------------
@@ -148,27 +149,63 @@
 
 ; ArithC -> Number
 ; evaluates the given arithmetic expr a.
-(define (interp [a : ExprC]) : number
+(define (interp [a : ExprC] [fds : (listof FunDefC)]) : number
   (type-case ExprC a
     [numC (n) n]
-    [plusC (l r) (+ (interp l) (interp r))]
-    [multC (l r) (* (interp l) (interp r))]
-    [ifC (cnd cseq alt) (if (zero? (interp cnd))
-                           (interp cseq)
-                           (interp alt))]
-    [idC (s) 0]
-    [appC (fun arg)
-          0]))
+    [plusC (l r) (+ (interp l fds) (interp r fds))]
+    [multC (l r) (* (interp l fds) (interp r fds))]
+    [ifC (cnd cseq alt) (if (zero? (interp cnd fds))
+                           (interp cseq fds)
+                           (interp alt fds))]
+    [idC (_) (error 'interp "shouldn't get here")]
+    [appC (fun arg) (let ((fundef (get-fundef fun fds)))
+                      (interp (subst arg
+                                     (fdC-arg fundef)
+                                     (fdC-body fundef))
+                              fds))]))
 
 
-(test (interp (numC 2)) 2)
-(test (interp (plusC (numC 2) (numC 3))) 5)
-(test (interp (multC (numC 5) (numC 6))) 30)
+(test (interp (numC 2) fun-defs) 2)
+(test (interp (plusC (numC 2) (numC 3)) fun-defs) 5)
+(test (interp (multC (numC 5) (numC 6)) fun-defs) 30)
 
 (test (interp (plusC (plusC (numC 2) (numC 3))
-                     (multC (numC 5) (numC 6))))
+                     (multC (numC 5) (numC 6)))
+              fun-defs)
       35)
 
 (test (interp (multC (plusC (numC 2) (numC 3))
-                     (multC (numC 5) (numC 6))))
+                     (multC (numC 5) (numC 6)))
+              fun-defs)
       150)
+
+
+
+; -----------------------------
+;  Aux Functions
+; -----------------------------
+
+; symbol (listof FunDefC) -> FunDefC
+(define (get-fundef [name : symbol] [fds : (listof FunDefC)]) : FunDefC
+  (fdC 'dummy '_ (numC 0)))
+
+
+; ExprC symbol ExprC -> ExprC
+; subst ident 'for' in 'in' with 'what'
+(define (subst [what : ExprC] [for : symbol] [in : ExprC]) : ExprC
+  (type-case ExprC in
+    [numC (n) in]
+    [idC (s) (cond
+               [(symbol=? s for) what]
+               [else in])]
+    [appC (f a) (appC f (subst what for a))]
+    [plusC (l r) (plusC (subst what for l)
+                        (subst what for r))]
+    [multC (l r) (multC (subst what for l)
+                        (subst what for r))]
+    [ifC (cnd cnsqnt alt) (ifC (subst what for cnd)
+                               (subst what for cnsqnt)
+                               (subst what for alt))]))
+
+
+
