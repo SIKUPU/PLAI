@@ -7,13 +7,14 @@
 
 ;   Surface Language
 
-; num
-; (+ expr expr)
-; (- expr expr)
-; (- expr)
-; (- expr expr)
-; (* expr expr)
-; (if expr expr expr)
+; expr:=
+;   num
+;   (+ expr expr)
+;   (- expr expr)
+;   (- expr)
+;   (- expr expr)
+;   (* expr expr)
+;   (if expr expr expr)
 
 (define-type ArithS
   [numS (n : number)]
@@ -160,6 +161,7 @@
 ; substitutes ident 'for' within 'in' with 'what'
 (define (subst [what : number] [for : symbol] [in : ExprC]) : ExprC
   (subst2 (numC what) for in))
+
 
 ; ExprC symbol ExprC -> ExprC
 (define (subst2 [what : ExprC] [for : symbol] [in : ExprC]) : ExprC
