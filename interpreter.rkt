@@ -29,34 +29,38 @@
 (define-type ExprC
   [numC (n : number)]
   [idC (s : symbol)]
-  [appC (fun : symbol) (arg : ExprC)]
+  [appC (fun : ExprC) (arg : ExprC)]
   [plusC (l : ExprC) (r : ExprC)]
   [multC (l : ExprC) (r : ExprC)]
-  [ifC (cnd : ExprC) (cnsqnt : ExprC) (alt : ExprC)])
-
-
-;  Function definition
-(define-type FunDefC
+  [ifC (cnd : ExprC) (cnsqnt : ExprC) (alt : ExprC)]
   [fdC (name : symbol) (arg : symbol) (body : ExprC)])
 
 
 ; Environment
 (define-type Binding
-  [bind (name : symbol) (val : number)])
+  [bind (name : symbol) (val : Value)])
  
 (define-type-alias Env (listof Binding))
 (define mt-env empty)
 (define extend-env cons)
 
 
+; Value
+(define-type Value
+  [numV (n : number)]
+  [funV (name : symbol) (arg : symbol) (body : ExprC)])
+
+
 ;------------------
 ;  Data Examples
 ;------------------
 (define double    (fdC 'double 'x (plusC (idC 'x) (idC 'x))))
-(define quadruple (fdC 'quadruple 'x (appC 'double (appC 'double (idC 'x)))))
+(define quadruple (fdC 'quadruple 'x (appC double (appC double (idC 'x)))))
 (define const5    (fdC 'const5 '_ (numC 5)))
 
-(define fun-defs (list double quadruple const5))
+(define f2        (fdC 'f2 'y (plusC (idC 'x) (idC 'y))))
+(define f1        (fdC 'f1 'x (appC f2 (numC 4))))
+
 
 
 ; -----------------------------
@@ -158,94 +162,75 @@
 ;  Aux Functions
 ; -----------------------------
 
-; symbol (listof FunDefC) -> FunDefC
-(define (get-fundef [name : symbol] [fds : (listof FunDefC)]) : FunDefC
-  (cond
-    [(empty? fds) (error 'get-fundef "reference to undefined function")]
-    [(cons? fds) (cond
-                   [(equal? name (fdC-name (first fds))) (first fds)]
-                   [else (get-fundef name (rest fds))])]))
-
-
-; Number symbol ExprC -> ExprC
-; substitutes ident 'for' within 'in' with 'what'
-(define (subst [what : number] [for : symbol] [in : ExprC]) : ExprC
-  (subst2 (numC what) for in))
-
-
-; ExprC symbol ExprC -> ExprC
-(define (subst2 [what : ExprC] [for : symbol] [in : ExprC]) : ExprC
-  (type-case ExprC in
-    [numC (n) in]
-    [idC (s) (cond
-               [(symbol=? s for) what]
-               [else in])]
-    [appC (f a) (appC f (subst2 what for a))]
-    [plusC (l r) (plusC (subst2 what for l)
-                        (subst2 what for r))]
-    [multC (l r) (multC (subst2 what for l)
-                        (subst2 what for r))]
-    [ifC (cnd cnsqnt alt) (ifC (subst2 what for cnd)
-                               (subst2 what for cnsqnt)
-                               (subst2 what for alt))]))
-
-
-; symbol Env -> Number
-(define (lookup [s : symbol] [env : Env]) : number
+; symbol Env -> Value
+(define (lookup [s : symbol] [env : Env]) : Value
   (cond
     [(empty? env) (error 'lookup (string-append (symbol->string s) " no binding entry"))]
     [else (if (symbol=? s (bind-name (first env)))
               (bind-val (first env))
               (lookup s (rest env)))]))
 
-(test (lookup 'x (list (bind 'x 1))) 1)
-(test (lookup 'x (list (bind 'y 4) (bind 'x 1))) 1)
-(test (lookup 'x (list (bind 'y 4) (bind 'x 1) (bind 'x 10))) 1)
+(test (lookup 'x (list (bind 'x (numV 1)))) (numV 1))
+(test (lookup 'x (list (bind 'y (numV 4)) (bind 'x (numV 1)))) (numV 1))
+(test (lookup 'x (list (bind 'y (numV 4)) (bind 'x (numV 1)) (bind 'x (numV 10)))) (numV 1))
+
 
 
 ; -----------------------------
 ;  Interpreter
 ; -----------------------------
 
-; ArithC -> Number
+; ExprC -> Value
 ; evaluates the given arithmetic expr a.
-(define (interp [a : ExprC] [env : Env] [fds : (listof FunDefC)]) : number
-  (type-case ExprC a
-    [numC (n) n]
-    [plusC (l r) (+ (interp l env fds) (interp r env fds))]
-    [multC (l r) (* (interp l env fds) (interp r env fds))]
-    [ifC (cnd cseq alt) (if (zero? (interp cnd env fds))
-                           (interp cseq env fds)
-                           (interp alt env fds))]
-    [idC (s) (lookup s env)]
-    [appC (fun arg) (let ((fundef (get-fundef fun fds)))
-                      (interp (fdC-body fundef)
-                              (extend-env (bind (fdC-arg fundef)
-                                                (interp arg env fds))
-                                          mt-env)
-                              fds))]))
+(define (interp [a : ExprC] [env : Env]) : Value
+  (local (; Value Value -> Value
+          (define (num+ [l : Value] [r : Value]) : Value
+            (if (and (numV? l) (numV? r))
+                (numV (+ (numV-n l) (numV-n r)))
+                (error 'num+ "one argument was not a number")))
 
-(test (interp (plusC (numC 10) (appC 'const5 (numC 10)))
-              mt-env
-              (list (fdC 'const5 '_ (numC 5))))
-      15)
- 
-(test (interp (plusC (numC 10) (appC 'double (plusC (numC 1) (numC 2))))
-              mt-env
-              (list (fdC 'double 'x (plusC (idC 'x) (idC 'x)))))
-      16)
- 
-(test (interp (plusC (numC 10) (appC 'quadruple (plusC (numC 1) (numC 2))))
-              mt-env
-              (list (fdC 'quadruple 'x (appC 'double (appC 'double (idC 'x))))
-                    (fdC 'double 'x (plusC (idC 'x) (idC 'x)))))
-      22)
+          ; Value Value -> Value
+          (define (num* [l : Value] [r : Value]) : Value
+            (if (and (numV? l) (numV? r))
+                (numV (* (numV-n l) (numV-n r)))
+                (error 'num+ "one argument was not a number")))
 
-(test/exn (interp (appC 'f1 (numC 3))
-              mt-env
-              (list (fdC 'f1 'x (appC 'f2 (numC 4)))
-                    (fdC 'f2 'y (plusC (idC 'x) (idC 'y)))))
-      "lookup: x no binding entry")
+          ; Value -> Boolean
+          (define (numZero? [cnd : Value]) : boolean
+            (cond
+              [(numV? cnd) (zero? (numV-n cnd))]
+              [else (error 'numIf "one argument was not a number")])))
+    ;-----------------
+    (type-case ExprC a
+      [numC (n) (numV n)]
+      [plusC (l r) (num+ (interp l env) (interp r env))]
+      [multC (l r) (num* (interp l env) (interp r env))]
+      [ifC (cnd cseq alt) (if (numZero? (interp cnd env))
+                              (interp alt env)
+                              (interp cseq env))]
+      [idC (s) (lookup s env)]
+      [fdC (n a b) (funV n a b)]
+      [appC (f a) (local ([define fd (interp f env)])
+                    (interp (funV-body fd)
+                            (extend-env (bind (funV-arg fd)
+                                              (interp a env))
+                                        mt-env)))])))
+
+(test (interp (plusC (numC 10) (appC const5 (numC 10)))
+              mt-env)
+      (numV 15))
+ 
+(test (interp (plusC (numC 10) (appC double (plusC (numC 1) (numC 2))))
+              mt-env)
+      (numV 16))
+ 
+(test (interp (plusC (numC 10) (appC quadruple (plusC (numC 1) (numC 2))))
+              mt-env)
+      (numV 22))
+
+(test/exn (interp (appC f1 (numC 3))
+              mt-env)
+          "lookup: x no binding entry")
 
 #|
 (test (interp (numC 2) fun-defs) 2)
