@@ -240,14 +240,14 @@
               (list (fdC 'quadruple 'x (appC 'double (appC 'double (idC 'x))))
                     (fdC 'double 'x (plusC (idC 'x) (idC 'x)))))
       22)
-#|
-(test (interp (appC 'f1 (numC 3))
+
+(test/exn (interp (appC 'f1 (numC 3))
               mt-env
               (list (fdC 'f1 'x (appC 'f2 (numC 4)))
                     (fdC 'f2 'y (plusC (idC 'x) (idC 'y)))))
-      7)
+      "lookup: x no binding entry")
 
-
+#|
 (test (interp (numC 2) fun-defs) 2)
 (test (interp (plusC (numC 2) (numC 3)) fun-defs) 5)
 (test (interp (multC (numC 5) (numC 6)) fun-defs) 30)
