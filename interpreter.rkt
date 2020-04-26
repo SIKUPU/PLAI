@@ -40,8 +40,18 @@
   [fdC (name : symbol) (arg : symbol) (body : ExprC)])
 
 
-;  Examples
+; Environment
+(define-type Binding
+  [bind (name : symbol) (val : number)])
+ 
+(define-type-alias Env (listof Binding))
+(define mt-env empty)
+(define extend-env cons)
 
+
+;------------------
+;  Data Examples
+;------------------
 (define double    (fdC 'double 'x (plusC (idC 'x) (idC 'x))))
 (define quadruple (fdC 'quadruple 'x (appC 'double (appC 'double (idC 'x)))))
 (define const5    (fdC 'const5 '_ (numC 5)))
@@ -180,6 +190,18 @@
                                (subst2 what for alt))]))
 
 
+; symbol Env -> Number
+(define (lookup [s : symbol] [env : Env]) : number
+  (cond
+    [(empty? env) (error 'lookup (string-append (symbol->string s) " no binding entry"))]
+    [else (if (symbol=? s (bind-name (first env)))
+              (bind-val (first env))
+              (lookup s (rest env)))]))
+
+(test (lookup 'x (list (bind 'x 1))) 1)
+(test (lookup 'x (list (bind 'y 4) (bind 'x 1))) 1)
+(test (lookup 'x (list (bind 'y 4) (bind 'x 1) (bind 'x 10))) 1)
+
 
 ; -----------------------------
 ;  Interpreter
@@ -187,20 +209,43 @@
 
 ; ArithC -> Number
 ; evaluates the given arithmetic expr a.
-(define (interp [a : ExprC] [fds : (listof FunDefC)]) : number
+(define (interp [a : ExprC] [env : Env] [fds : (listof FunDefC)]) : number
   (type-case ExprC a
     [numC (n) n]
-    [plusC (l r) (+ (interp l fds) (interp r fds))]
-    [multC (l r) (* (interp l fds) (interp r fds))]
-    [ifC (cnd cseq alt) (if (zero? (interp cnd fds))
-                           (interp cseq fds)
-                           (interp alt fds))]
-    [idC (_) (error 'interp "shouldn't get here")]
+    [plusC (l r) (+ (interp l env fds) (interp r env fds))]
+    [multC (l r) (* (interp l env fds) (interp r env fds))]
+    [ifC (cnd cseq alt) (if (zero? (interp cnd env fds))
+                           (interp cseq env fds)
+                           (interp alt env fds))]
+    [idC (s) (lookup s env)]
     [appC (fun arg) (let ((fundef (get-fundef fun fds)))
-                      (interp (subst (interp arg fds)
-                                     (fdC-arg fundef)
-                                     (fdC-body fundef))
+                      (interp (fdC-body fundef)
+                              (extend-env (bind (fdC-arg fundef)
+                                                (interp arg env fds))
+                                          mt-env)
                               fds))]))
+
+(test (interp (plusC (numC 10) (appC 'const5 (numC 10)))
+              mt-env
+              (list (fdC 'const5 '_ (numC 5))))
+      15)
+ 
+(test (interp (plusC (numC 10) (appC 'double (plusC (numC 1) (numC 2))))
+              mt-env
+              (list (fdC 'double 'x (plusC (idC 'x) (idC 'x)))))
+      16)
+ 
+(test (interp (plusC (numC 10) (appC 'quadruple (plusC (numC 1) (numC 2))))
+              mt-env
+              (list (fdC 'quadruple 'x (appC 'double (appC 'double (idC 'x))))
+                    (fdC 'double 'x (plusC (idC 'x) (idC 'x)))))
+      22)
+#|
+(test (interp (appC 'f1 (numC 3))
+              mt-env
+              (list (fdC 'f1 'x (appC 'f2 (numC 4)))
+                    (fdC 'f2 'y (plusC (idC 'x) (idC 'y)))))
+      7)
 
 
 (test (interp (numC 2) fun-defs) 2)
@@ -222,5 +267,5 @@
 
 (test (interp (appC 'double (multC (numC 2) (numC 3))) fun-defs)
       12)
-
+|#
 
