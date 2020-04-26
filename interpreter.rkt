@@ -211,10 +211,12 @@
       [idC (s) (lookup s env)]
       [fdC (n a b) (funV n a b)]
       [appC (f a) (local ([define fd (interp f env)])
-                    (interp (funV-body fd)
+                    (if (funV? fd)
+                        (interp (funV-body fd)
                             (extend-env (bind (funV-arg fd)
                                               (interp a env))
-                                        mt-env)))])))
+                                        mt-env))
+                        (error 'interp "operation position was not a function value")))])))
 
 (test (interp (plusC (numC 10) (appC const5 (numC 10)))
               mt-env)
@@ -229,8 +231,12 @@
       (numV 22))
 
 (test/exn (interp (appC f1 (numC 3))
-              mt-env)
+                  mt-env)
           "lookup: x no binding entry")
+
+(test/exn (interp (appC (numC 1) (numC 3))
+                  mt-env)
+          "interp: operation position was not a function value")
 
 #|
 (test (interp (numC 2) fun-defs) 2)
