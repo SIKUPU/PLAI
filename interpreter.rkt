@@ -33,7 +33,7 @@
   [plusC (l : ExprC) (r : ExprC)]
   [multC (l : ExprC) (r : ExprC)]
   [ifC (cnd : ExprC) (cnsqnt : ExprC) (alt : ExprC)]
-  [fdC (name : symbol) (arg : symbol) (body : ExprC)])
+  [lamC (arg : symbol) (body : ExprC)])
 
 
 ; Environment
@@ -48,18 +48,18 @@
 ; Value
 (define-type Value
   [numV (n : number)]
-  [funV (name : symbol) (arg : symbol) (body : ExprC)])
+  [closV (arg : symbol) (body : ExprC) (env : Env)])
 
 
 ;------------------
 ;  Data Examples
 ;------------------
-(define double    (fdC 'double 'x (plusC (idC 'x) (idC 'x))))
-(define quadruple (fdC 'quadruple 'x (appC double (appC double (idC 'x)))))
-(define const5    (fdC 'const5 '_ (numC 5)))
+(define double    (lamC 'x (plusC (idC 'x) (idC 'x))))
+(define quadruple (lamC 'x (appC double (appC double (idC 'x)))))
+(define const5    (lamC '_ (numC 5)))
 
-(define f2        (fdC 'f2 'y (plusC (idC 'x) (idC 'y))))
-(define f1        (fdC 'f1 'x (appC f2 (numC 4))))
+(define f2        (lamC 'y (plusC (idC 'x) (idC 'y))))
+(define f1        (lamC 'x (appC f2 (numC 4))))
 
 
 
@@ -209,13 +209,13 @@
                               (interp alt env)
                               (interp cseq env))]
       [idC (s) (lookup s env)]
-      [fdC (n a b) (funV n a b)]
-      [appC (f a) (local ([define fd (interp f env)])
-                    (if (funV? fd)
-                        (interp (funV-body fd)
-                            (extend-env (bind (funV-arg fd)
+      [lamC (a b) (closV a b env)]
+      [appC (f a) (local ([define f-value (interp f env)])
+                    (if (closV? f-value)
+                        (interp (closV-body f-value)
+                            (extend-env (bind (closV-arg f-value)
                                               (interp a env))
-                                        mt-env))
+                                        (closV-env f-value)))
                         (error 'interp "operation position was not a function value")))])))
 
 (test (interp (plusC (numC 10) (appC const5 (numC 10)))
