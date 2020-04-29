@@ -15,14 +15,17 @@
 ;   (- expr expr)
 ;   (* expr expr)
 ;   (if expr expr expr)
+;   (let id expr expr)
 
 (define-type ArithS
   [numS (n : number)]
+  [idS (s : symbol)]
   [plusS (l : ArithS) (r : ArithS)]
   [uminusS (e : ArithS)]
   [bminusS (l : ArithS) (r : ArithS)]
   [multS (l : ArithS) (r : ArithS)]
-  [ifS (cnd : ArithS) (cnsqnt : ArithS) (alt : ArithS)])
+  [ifS (cnd : ArithS) (cnsqnt : ArithS) (alt : ArithS)]
+  [letS (id : symbol) (a : ArithS) (b : ArithS)])
 
 
 ;   Core Language
@@ -126,18 +129,21 @@
 ; translates the given surface language 'as' to core language
 (define (desugar [as : ArithS]) : ExprC
   (type-case ArithS as
-    [numS(n) (numC n)]
-    [plusS(l r) (plusC (desugar l)
+    [numS (n) (numC n)]
+    [idS (s) (idC s)]
+    [plusS (l r) (plusC (desugar l)
                         (desugar r))]
-    [multS(l r) (multC (desugar l)
+    [multS (l r) (multC (desugar l)
                         (desugar r))]
-    [uminusS(e) (multC (numC -1) (desugar e))]  ; -e defined -1*e
-    [bminusS(l r) (plusC (desugar l)            ; l-r defined l+(-1)*r
+    [uminusS (e) (multC (numC -1) (desugar e))]  ; -e defined -1*e
+    [bminusS (l r) (plusC (desugar l)            ; l-r defined l+(-1)*r
                          (multC (numC -1)
                                 (desugar r)))]
-    [ifS(cnd cseq alt) (ifC (desugar cnd)
+    [ifS (cnd cseq alt) (ifC (desugar cnd)
                             (desugar cseq)
-                            (desugar alt))]))
+                            (desugar alt))]
+    [letS (id arg body) (appC (lamC id (desugar body))
+                              (desugar arg))]))
 
 (test (desugar (numS 2)) (numC 2))
 
@@ -156,7 +162,17 @@
 (test (desugar (uminusS (plusS (numS 5) (numS 6))))
       (multC (numC -1) (plusC (numC 5) (numC 6))))
 
+(test (desugar (letS 'x (numS 1) (plusS (idS 'x) (numS 2))))
+      (appC (lamC 'x (plusC (idC 'x) (numC 2)))
+            (numC 1)))
 
+(test (desugar (letS 'x (numS 1)
+                     (letS 'y (numS 2)
+                           (plusS (idS 'x) (idS 'y)))))
+      (appC (lamC 'x (appC (lamC 'y (plusC (idC 'x) (idC 'y)))
+                           (numC 2)))
+            (numC 1)))
+                  
 
 ; -----------------------------
 ;  Aux Functions
@@ -233,6 +249,12 @@
 (test/exn (interp (appC f1 (numC 3))
                   mt-env)
           "lookup: x no binding entry")
+
+(test/exn (interp (appC (lamC 'f2 (appC (idC 'f2) (numC 4)))
+                        (lamC 'y (plusC (idC 'x) (idC 'y))))
+                  mt-env)
+          "lookup: x no binding entry")
+                        
 
 (test/exn (interp (appC (numC 1) (numC 3))
                   mt-env)
